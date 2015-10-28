@@ -52,7 +52,7 @@ public class MySystem {
 
     public ActorRef start() {
 
-        system = ActorSystem.create("gjallarhorn-webhook-notifier-system", config);
+        system = ActorSystem.create("example-system", config);
         Address realJoinAddress = Cluster.get(system).selfAddress();
         System.out.println("-----JOIN ADDRESS: " + realJoinAddress + "------");
         // Cluster.get(system).join(realJoinAddress);

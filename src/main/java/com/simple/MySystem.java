@@ -38,10 +38,12 @@ public class MySystem {
                 .withFallback(ConfigFactory.load());
 
         MySystem sysInstance = new MySystem(config);
-        ActorRef manager = sysInstance.start();
+        ActorRef proxy = sysInstance.start();
 
+        Thread.sleep(2000);
+        System.out.println("---------Sending msgs to Manager Proxy...");
         for (int i = 0; i < 10; i++) {
-            manager.tell("someMsg", ActorRef.noSender());
+            proxy.tell("someMsg", ActorRef.noSender());
             Thread.sleep(1000);
         }
 

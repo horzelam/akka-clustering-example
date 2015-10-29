@@ -7,7 +7,7 @@ import akka.cluster.Cluster;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
-public class MyManagerActor extends UntypedActor {
+public class Master extends UntypedActor {
     private final LoggingAdapter logger = Logging.getLogger(getContext().system(), this);
 
     @Override

@@ -8,8 +8,10 @@ import akka.actor.Address;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.cluster.Cluster;
-import akka.contrib.pattern.ClusterSingletonManager;
-import akka.contrib.pattern.ClusterSingletonProxy;
+import akka.cluster.singleton.ClusterSingletonManager;
+import akka.cluster.singleton.ClusterSingletonManagerSettings;
+import akka.cluster.singleton.ClusterSingletonProxy;
+import akka.cluster.singleton.ClusterSingletonProxySettings;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -18,9 +20,16 @@ import com.typesafe.config.ConfigFactory;
 // mvn exec:java -Dexec.mainClass="com.simple.MySystem" -Dconfig.resource=application.conf -Dexec.args="2551"
 // mvn exec:java -Dexec.mainClass="com.simple.MySystem" -Dconfig.resource=application.conf -Dexec.args="2552"
 // ...
+// see:
+//
+// - http://www.typesafe.com/activator/template/akka-distributed-workers-java
+// - https://github.com/typesafehub/activator-akka-distributed-workers-java/blob/d0ff7f4ef4629724368a2e68aa9ef7b4e3447270/src/main/java/worker/Frontend.java
+// -https://github.com/typesafehub/activator-akka-distributed-workers-java#master
+// - http://www.typesafe.com/activator/template/akka-distributed-workers?_ga=1.99394842.506721680.1434724237#code/src/main/scala/worker/Main.scala
+// - http://www.typesafe.com/activator/template/akka-distributed-workers-java#code/src/main/java/worker/Main.java
 public class MySystem {
 
-    private ActorSystem system;
+    private static ActorSystem system;
     private Config config;
 
     public MySystem(Config config) {
@@ -34,16 +43,23 @@ public class MySystem {
         // argument
         int port = (args.length == 0) ? 0 : Integer.parseInt(args[0]);
         Config config = ConfigFactory.parseString("akka.remote.netty.tcp.port=" + port)
-                //.withFallback(ConfigFactory.parseString("akka.cluster.roles = [managerRole]"))
+        // .withFallback(ConfigFactory.parseString("akka.cluster.roles = [managerRole]"))
                 .withFallback(ConfigFactory.load());
 
         MySystem sysInstance = new MySystem(config);
         ActorRef proxy = sysInstance.start();
+        //
+        // ActorSelection selection = system.actorSelection("/user/master");
+        // ActorSelection singletonSelection =
+        // system.actorSelection("/user/master/singleton");
 
         Thread.sleep(2000);
         System.out.println("---------Sending msgs to Manager Proxy...");
         for (int i = 0; i < 10; i++) {
             proxy.tell("someMsg", ActorRef.noSender());
+            // singletonSelection.tell("someMsg", ActorRef.noSender());
+            // selection.tell("someMsg", ActorRef.noSender());
+
             Thread.sleep(1000);
         }
 
@@ -64,12 +80,15 @@ public class MySystem {
 
         // create singleton Manager (not limited to any role - so all the nodes
         // can be used)
-        Props managerProps = ClusterSingletonManager.defaultProps(Props.create(MyManagerActor.class),
-                "singleton-my-manager", PoisonPill.getInstance(), null);
-        ActorRef manager = system.actorOf(managerProps, "my-manager");
+        Props managerProps = ClusterSingletonManager.props(Props.create(Master.class), PoisonPill.getInstance(),
+                ClusterSingletonManagerSettings.create(system));
+        ActorRef manager = system.actorOf(managerProps, "master");
         System.out.println("-------Created singleton instance : " + manager.path() + ", " + manager.hashCode());
 
-        ActorRef proxy = system.actorOf(ClusterSingletonProxy.defaultProps("/user/my-manager", null), "proxy"+RandomUtils.nextInt(0, Integer.MAX_VALUE));
+        ActorRef proxy = system.actorOf(
+                ClusterSingletonProxy.props("/user/master", ClusterSingletonProxySettings.create(system))
+                // ..withRole("backend")
+                , "proxy" + RandomUtils.nextInt(0, Integer.MAX_VALUE));
 
         return proxy;
         // manager = system.actorOf(Props.create(MyManagerActor.class),

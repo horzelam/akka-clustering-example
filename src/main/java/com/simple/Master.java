@@ -16,7 +16,12 @@ public class Master extends UntypedActor {
 
     @Override
     public void onReceive(Object msg) throws Exception {
-        if (msg.equals("someMsg")) {
+        
+        //TODO - on start: create one repo
+        //TODO - on message :
+        //  -creaate Aggregator (but DISTRIBUTED on cluster) !!!
+        //  -forward to Aggregator which then writes it to this single repo
+        if (msg.toString().startsWith("someMsg")) {
             logger.info("---------------| received msg: " + msg + " in  " + this.self().path().address() + " - "
                     + this.hashCode() + " in " + Cluster.get(this.context().system()).selfAddress());
 

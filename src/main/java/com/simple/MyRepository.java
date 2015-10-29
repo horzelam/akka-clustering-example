@@ -11,7 +11,7 @@ public class MyRepository extends UntypedActor {
     @Override
     public void onReceive(Object msg) throws Exception {
         if (msg.equals("writeJob")) {
-            logger.info("---------------| received msg: " + msg);
+            logger.info("---------------| received msg: " + msg + " in " + self().path());
             this.self().tell(PoisonPill.getInstance(), self());
         } else {
             logger.info("Unrecognized msg received : " + msg);

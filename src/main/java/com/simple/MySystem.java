@@ -48,22 +48,17 @@ public class MySystem {
 
         MySystem sysInstance = new MySystem(config);
         ActorRef proxy = sysInstance.start();
-        //
-        // ActorSelection selection = system.actorSelection("/user/master");
-        // ActorSelection singletonSelection =
-        // system.actorSelection("/user/master/singleton");
 
         Thread.sleep(2000);
         System.out.println("---------Sending msgs to Manager Proxy...");
         for (int i = 0; i < 10; i++) {
-            proxy.tell("someMsg", ActorRef.noSender());
+            proxy.tell("someMsg-"+port, ActorRef.noSender());
             // singletonSelection.tell("someMsg", ActorRef.noSender());
             // selection.tell("someMsg", ActorRef.noSender());
-
             Thread.sleep(1000);
         }
 
-        Thread.sleep(10000);
+        Thread.sleep(20000);
         System.out.println("---------STOPPING THE SYSTEM...");
         sysInstance.stop();
     }
@@ -91,8 +86,6 @@ public class MySystem {
                 , "proxy" + RandomUtils.nextInt(0, Integer.MAX_VALUE));
 
         return proxy;
-        // manager = system.actorOf(Props.create(MyManagerActor.class),
-        // "manager");
 
     }
 

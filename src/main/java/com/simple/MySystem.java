@@ -28,6 +28,8 @@ import com.typesafe.config.ConfigFactory;
 // - cluster + cluster aware routers :
 //      http://doc.akka.io/docs/akka/2.4.0/java/cluster-usage.html
 //      http://doc.akka.io/docs/akka/2.1.2/cluster/cluster-usage-java.html#preparing-your-project-for-clustering
+// - router actors:
+//      http://doc.akka.io/docs/akka/2.3.1/scala/routing.html#Remote_Deployed_Routees
 // - http://www.typesafe.com/activator/template/akka-distributed-workers-java
 // - https://github.com/typesafehub/activator-akka-distributed-workers-java/blob/d0ff7f4ef4629724368a2e68aa9ef7b4e3447270/src/main/java/worker/Frontend.java
 // - https://github.com/typesafehub/activator-akka-distributed-workers-java#master
@@ -79,7 +81,7 @@ public class MySystem {
 
         // create singleton Manager (not limited to any role - so all the nodes
         // can be used)
-        Props managerProps = ClusterSingletonManager.props(Props.create(Master.class), PoisonPill.getInstance(),
+        Props managerProps = ClusterSingletonManager.props(Props.create(MasterActor.class), PoisonPill.getInstance(),
                 ClusterSingletonManagerSettings.create(system));
         ActorRef manager = system.actorOf(managerProps, "master");
         System.out.println("-------Created singleton instance : " + manager.path() + ", " + manager.hashCode());

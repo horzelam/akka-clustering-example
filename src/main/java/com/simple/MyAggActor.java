@@ -14,7 +14,7 @@ public class MyAggActor extends UntypedActor {
 
     @Override
     public void onReceive(Object msg) throws Exception {
-        if (msg instanceof SimpleMessage) {
+        if (msg instanceof SimpleMessage || msg.toString().startsWith("someMsg")) {
             if (++counter < 3) {
                 logger.info("---------------| aggregating message:" + msg + "," + self().path());
             } else {

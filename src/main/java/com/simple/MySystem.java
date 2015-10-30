@@ -22,8 +22,9 @@ import com.typesafe.config.ConfigFactory;
 // mvn exec:java -Dexec.mainClass="com.simple.MySystem" -Dconfig.resource=application.conf -Dexec.args="2552"
 // ...
 // TODO:
-// config to use cluster aware routers/remote deployed routees
+// 1) config to use cluster aware routers/remote deployed routees
 // currently it creates Cluster Singleton, but children are created only on the same node where singleton is created
+// 2) try clustering as in example: https://github.com/54chen/akka_cluster_learn/blob/master/src/main/java/sample/cluster/stats/StatsService.java
 // see:
 // - cluster + cluster aware routers :
 //      http://doc.akka.io/docs/akka/2.4.0/java/cluster-usage.html

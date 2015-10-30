@@ -13,6 +13,7 @@ import akka.cluster.singleton.ClusterSingletonManagerSettings;
 import akka.cluster.singleton.ClusterSingletonProxy;
 import akka.cluster.singleton.ClusterSingletonProxySettings;
 
+import com.simple.msg.SimpleMessage;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
@@ -20,11 +21,16 @@ import com.typesafe.config.ConfigFactory;
 // mvn exec:java -Dexec.mainClass="com.simple.MySystem" -Dconfig.resource=application.conf -Dexec.args="2551"
 // mvn exec:java -Dexec.mainClass="com.simple.MySystem" -Dconfig.resource=application.conf -Dexec.args="2552"
 // ...
+// TODO:
+// config to use cluster aware routers/remote deployed routees
+// currently it creates Cluster Singleton, but children are created only on the same node where singleton is created
 // see:
-//
+// - cluster + cluster aware routers :
+//      http://doc.akka.io/docs/akka/2.4.0/java/cluster-usage.html
+//      http://doc.akka.io/docs/akka/2.1.2/cluster/cluster-usage-java.html#preparing-your-project-for-clustering
 // - http://www.typesafe.com/activator/template/akka-distributed-workers-java
 // - https://github.com/typesafehub/activator-akka-distributed-workers-java/blob/d0ff7f4ef4629724368a2e68aa9ef7b4e3447270/src/main/java/worker/Frontend.java
-// -https://github.com/typesafehub/activator-akka-distributed-workers-java#master
+// - https://github.com/typesafehub/activator-akka-distributed-workers-java#master
 // - http://www.typesafe.com/activator/template/akka-distributed-workers?_ga=1.99394842.506721680.1434724237#code/src/main/scala/worker/Main.scala
 // - http://www.typesafe.com/activator/template/akka-distributed-workers-java#code/src/main/java/worker/Main.java
 public class MySystem {
@@ -51,14 +57,12 @@ public class MySystem {
 
         Thread.sleep(2000);
         System.out.println("---------Sending msgs to Manager Proxy...");
-        for (int i = 0; i < 10; i++) {
-            proxy.tell("someMsg-"+port, ActorRef.noSender());
-            // singletonSelection.tell("someMsg", ActorRef.noSender());
-            // selection.tell("someMsg", ActorRef.noSender());
-            Thread.sleep(1000);
+        for (int i = 0; i < 20; i++) {
+            proxy.tell(new SimpleMessage("someMsg" + port, RandomUtils.nextInt(0, 3)), ActorRef.noSender());
+            Thread.sleep(300);
         }
 
-        Thread.sleep(20000);
+        Thread.sleep(10000);
         System.out.println("---------STOPPING THE SYSTEM...");
         sysInstance.stop();
     }

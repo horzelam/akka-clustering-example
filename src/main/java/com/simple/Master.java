@@ -17,9 +17,9 @@ public class Master extends UntypedActor {
     public void onReceive(Object msg) throws Exception {
 
         // TODO
-        // - create child Aggregator (but DISTRIBUTED on cluster) !!!
+        // - create child Aggregator (but DISTRIBUTED on cluster)  - via router configured to do so
         if (msg instanceof SimpleMessage) {
-            logger.info("---------------| received msg: " + msg + " in  " + this.self().path().address() + " - " + this.hashCode() + " in "
+            logger.info("Received msg: " + msg + " in  " + this.self().path().address() + " - " + this.hashCode() + " in "
                             + Cluster.get(this.context().system()).selfAddress());
             SimpleMessage simpleMsg = (SimpleMessage) msg;
 
@@ -31,7 +31,7 @@ public class Master extends UntypedActor {
                 child = possibleChild.get();
             } else {
                 child = this.context().actorOf(Props.create(MyAggActor.class), childName);
-                System.out.println("------------| created a child actor: " + child.path());
+                System.out.println("Created a child actor: " + child.path());
             }
 
             child.tell(simpleMsg, self());

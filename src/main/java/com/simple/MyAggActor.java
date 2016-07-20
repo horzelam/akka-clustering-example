@@ -16,13 +16,13 @@ public class MyAggActor extends UntypedActor {
     public void onReceive(Object msg) throws Exception {
         if (msg instanceof SimpleMessage) {
             if (++counter < 3) {
-                logger.info("---------------| aggregating message:" + msg + "," + self().path());
+                logger.info("Aggregating message:" + msg + "," + self().path());
             } else {
-                logger.info("---------------| dying for 3rd message," + self().path());
+                logger.info("Dying for 3rd message," + self().path());
                 this.self().tell(PoisonPill.getInstance(), self());
             }
         } else {
-            logger.info("---------------| Unrecognized msg received : " + msg);
+            logger.info("Unrecognized msg received : " + msg);
         }
     }
 }

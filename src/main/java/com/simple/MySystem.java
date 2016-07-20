@@ -10,6 +10,8 @@ import akka.cluster.singleton.ClusterSingletonManager;
 import akka.cluster.singleton.ClusterSingletonManagerSettings;
 import akka.cluster.singleton.ClusterSingletonProxy;
 import akka.cluster.singleton.ClusterSingletonProxySettings;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
 import com.simple.msg.SimpleMessage;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -36,6 +38,8 @@ public class MySystem {
 
     private static ActorSystem system;
 
+    private LoggingAdapter logger;
+
     private Config config;
 
     public MySystem(Config config) {
@@ -43,7 +47,7 @@ public class MySystem {
     }
 
     public static void main(String[] args) throws InterruptedException {
-        System.out.println("starting...");
+        System.out.println("[MAIN] Starting the app...");
 
         // Override the configuration of the port when specified as program
         // argument
@@ -54,35 +58,35 @@ public class MySystem {
 
         MySystem sysInstance = new MySystem(config);
         sysInstance.start(port);
-        System.out.println("---------STOPPING THE SYSTEM in 10 sec...");
+        System.out.println("[MAIN] STOPPING THE SYSTEM in 10 sec...");
         Thread.sleep(20_000);
-        System.out.println("---------STOPPING THE SYSTEM...");
+        System.out.println("[MAIN] STOPPING THE SYSTEM...");
         sysInstance.stop();
     }
 
     public void start(int port) {
-
         system = ActorSystem.create("example-system", config);
+        this.logger = Logging.getLogger(system, this);
         Address realJoinAddress = Cluster.get(system).selfAddress();
-        System.out.println("-----JOIN ADDRESS: " + realJoinAddress + "------");
+        logger.info("[MAIN] JOIN ADDRESS: " + realJoinAddress + "------");
         // Cluster.get(system).join(realJoinAddress);
 
-        System.out.println("-------Starting system with config:");
-        System.out.println("-------" + system.settings().config().getAnyRef("akka.remote.netty.tcp.port"));
+        logger.info("[MAIN] Starting system with config:");
+        logger.info("[MAIN] " + system.settings().config().getAnyRef("akka.remote.netty.tcp.port"));
 
         Cluster.get(system).registerOnMemberUp(() -> onClusterUp(port));
 
     }
 
     private void onClusterUp(int port) {
-        System.out.println("Cluster is UP !");
+        logger.info("[MAIN] Cluster is UP !");
 
         // create singleton Manager (not limited to any role - so all the nodes
         // can be used)
         Props managerProps = ClusterSingletonManager.props(Props.create(Master.class), PoisonPill.getInstance(),
                         ClusterSingletonManagerSettings.create(system));
         ActorRef manager = system.actorOf(managerProps, "master");
-        System.out.println("-------Created singleton instance : " + manager.path() + ", " + manager.hashCode());
+        logger.info("[MAIN] Created singleton instance : " + manager.path() + ", " + manager.hashCode());
 
         // then  using proxy to access the singleton Master actor
         ActorRef proxy = system.actorOf(ClusterSingletonProxy.props("/user/master", ClusterSingletonProxySettings.create(system))
@@ -96,7 +100,7 @@ public class MySystem {
     }
 
     private void sendMsg(int msgNr, ActorRef proxy, int port) {
-        System.out.println("------ Sending msg nr " + msgNr);
+        logger.info("[MAIN] Sending msg nr " + msgNr);
         proxy.tell(new SimpleMessage("someMsg_from_node_" + port, RandomUtils.nextInt(0, 3)), ActorRef.noSender());
         system.scheduler().scheduleOnce(FiniteDuration.apply(1, "s"), () -> {
             sendMsg(msgNr + 1, proxy, port);

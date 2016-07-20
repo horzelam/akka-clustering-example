@@ -22,7 +22,7 @@ public class MyAggActor extends UntypedActor {
                 this.self().tell(PoisonPill.getInstance(), self());
             }
         } else {
-            logger.info("Unrecognized msg received : " + msg);
+            logger.info("---------------| Unrecognized msg received : " + msg);
         }
     }
 }

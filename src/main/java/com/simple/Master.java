@@ -1,31 +1,26 @@
 package com.simple;
 
-import org.apache.commons.lang3.RandomUtils;
-
-import scala.Option;
-
-import com.simple.msg.SimpleMessage;
-
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.cluster.Cluster;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import com.simple.msg.SimpleMessage;
+import scala.Option;
 
 public class Master extends UntypedActor {
+
     private final LoggingAdapter logger = Logging.getLogger(getContext().system(), this);
 
     @Override
     public void onReceive(Object msg) throws Exception {
 
-        // TODO - on start: create one repo
-        // TODO - on message :
+        // TODO
         // - create child Aggregator (but DISTRIBUTED on cluster) !!!
-        // - forward to Aggregator which then writes it to this single repo
         if (msg instanceof SimpleMessage) {
-            logger.info("---------------| received msg: " + msg + " in  " + this.self().path().address() + " - "
-                    + this.hashCode() + " in " + Cluster.get(this.context().system()).selfAddress());
+            logger.info("---------------| received msg: " + msg + " in  " + this.self().path().address() + " - " + this.hashCode() + " in "
+                            + Cluster.get(this.context().system()).selfAddress());
             SimpleMessage simpleMsg = (SimpleMessage) msg;
 
             // get or create relevant child
@@ -36,6 +31,7 @@ public class Master extends UntypedActor {
                 child = possibleChild.get();
             } else {
                 child = this.context().actorOf(Props.create(MyAggActor.class), childName);
+                System.out.println("------------| created a child actor: " + child.path());
             }
 
             child.tell(simpleMsg, self());

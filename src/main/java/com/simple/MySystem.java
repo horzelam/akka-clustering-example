@@ -1,7 +1,5 @@
 package com.simple;
 
-import org.apache.commons.lang3.RandomUtils;
-
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Address;
@@ -12,10 +10,11 @@ import akka.cluster.singleton.ClusterSingletonManager;
 import akka.cluster.singleton.ClusterSingletonManagerSettings;
 import akka.cluster.singleton.ClusterSingletonProxy;
 import akka.cluster.singleton.ClusterSingletonProxySettings;
-
 import com.simple.msg.SimpleMessage;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import org.apache.commons.lang3.RandomUtils;
+import scala.concurrent.duration.FiniteDuration;
 
 // HOW to start it - simulating multiple Cluster Nodes , while 2551 is seed node (for initial join into the cluster):
 // mvn exec:java -Dexec.mainClass="com.simple.MySystem" -Dconfig.resource=application.conf -Dexec.args="2551"
@@ -36,6 +35,7 @@ import com.typesafe.config.ConfigFactory;
 public class MySystem {
 
     private static ActorSystem system;
+
     private Config config;
 
     public MySystem(Config config) {
@@ -49,25 +49,18 @@ public class MySystem {
         // argument
         int port = (args.length == 0) ? 0 : Integer.parseInt(args[0]);
         Config config = ConfigFactory.parseString("akka.remote.netty.tcp.port=" + port)
-        // .withFallback(ConfigFactory.parseString("akka.cluster.roles = [managerRole]"))
-                .withFallback(ConfigFactory.load());
+                                     // .withFallback(ConfigFactory.parseString("akka.cluster.roles = [managerRole]"))
+                                     .withFallback(ConfigFactory.load());
 
         MySystem sysInstance = new MySystem(config);
-        ActorRef proxy = sysInstance.start();
-
-        Thread.sleep(2000);
-        System.out.println("---------Sending msgs to Manager Proxy...");
-        for (int i = 0; i < 20; i++) {
-            proxy.tell(new SimpleMessage("someMsg" + port, RandomUtils.nextInt(0, 3)), ActorRef.noSender());
-            Thread.sleep(300);
-        }
-
-        Thread.sleep(10000);
+        sysInstance.start(port);
+        System.out.println("---------STOPPING THE SYSTEM in 10 sec...");
+        Thread.sleep(20_000);
         System.out.println("---------STOPPING THE SYSTEM...");
         sysInstance.stop();
     }
 
-    public ActorRef start() {
+    public void start(int port) {
 
         system = ActorSystem.create("example-system", config);
         Address realJoinAddress = Cluster.get(system).selfAddress();
@@ -77,20 +70,37 @@ public class MySystem {
         System.out.println("-------Starting system with config:");
         System.out.println("-------" + system.settings().config().getAnyRef("akka.remote.netty.tcp.port"));
 
+        Cluster.get(system).registerOnMemberUp(() -> onClusterUp(port));
+
+    }
+
+    private void onClusterUp(int port) {
+        System.out.println("Cluster is UP !");
+
         // create singleton Manager (not limited to any role - so all the nodes
         // can be used)
         Props managerProps = ClusterSingletonManager.props(Props.create(Master.class), PoisonPill.getInstance(),
-                ClusterSingletonManagerSettings.create(system));
+                        ClusterSingletonManagerSettings.create(system));
         ActorRef manager = system.actorOf(managerProps, "master");
         System.out.println("-------Created singleton instance : " + manager.path() + ", " + manager.hashCode());
 
-        ActorRef proxy = system.actorOf(
-                ClusterSingletonProxy.props("/user/master", ClusterSingletonProxySettings.create(system))
-                // ..withRole("backend")
-                , "proxy" + RandomUtils.nextInt(0, Integer.MAX_VALUE));
+        // then  using proxy to access the singleton Master actor
+        ActorRef proxy = system.actorOf(ClusterSingletonProxy.props("/user/master", ClusterSingletonProxySettings.create(system))
+                        // ..withRole("backend")
+                        , "proxy" + RandomUtils.nextInt(0, Integer.MAX_VALUE));
 
-        return proxy;
+        system.scheduler().scheduleOnce(FiniteDuration.apply(1, "s"), () -> {
+            sendMsg(0, proxy, port);
+        }, system.dispatcher());
 
+    }
+
+    private void sendMsg(int msgNr, ActorRef proxy, int port) {
+        System.out.println("------ Sending msg nr " + msgNr);
+        proxy.tell(new SimpleMessage("someMsg_from_node_" + port, RandomUtils.nextInt(0, 3)), ActorRef.noSender());
+        system.scheduler().scheduleOnce(FiniteDuration.apply(1, "s"), () -> {
+            sendMsg(msgNr + 1, proxy, port);
+        }, system.dispatcher());
     }
 
     private void stop() {

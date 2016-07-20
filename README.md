@@ -6,5 +6,8 @@
 
 ### TO CHECK
 
-* http://blog.kamkor.me/Akka-Cluster-Load-Balancing/
+* example where single producer is started and single consumer per consumer-node are started, then router is sending data with load balancing to consumers
+
+      * http://blog.kamkor.me/Akka-Cluster-Load-Balancing/
+      
 * https://blog.codecentric.de/en/2016/01/getting-started-akka-cluster/

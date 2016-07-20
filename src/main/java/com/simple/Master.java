@@ -25,6 +25,15 @@ public class Master extends UntypedActor {
 
             // get or create relevant child
             String childName = "aggregator-" + simpleMsg.getValue();
+
+
+
+            // TODO: replace child with router for children
+            // SCALA: context.actorOf(FromConfig.props(), name = "consumerRouter")
+            // aggRouter = this.getContext().actorOf(Props.create(), "aggRouter");
+
+
+
             Option<ActorRef> possibleChild = this.context().child(childName);
             ActorRef child;
             if (possibleChild.isDefined()) {

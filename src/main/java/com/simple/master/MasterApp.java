@@ -1,4 +1,4 @@
-package com.simple;
+package com.simple.master;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -12,16 +12,16 @@ import akka.cluster.singleton.ClusterSingletonProxy;
 import akka.cluster.singleton.ClusterSingletonProxySettings;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import com.simple.msg.SimpleMessage;
+import com.simple.common.SimpleMessage;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import org.apache.commons.lang3.RandomUtils;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
- * Main App class.
+ * Frontend App starter.
  */
-public class App {
+public class MasterApp {
 
     private static ActorSystem system;
 
@@ -29,7 +29,7 @@ public class App {
 
     private Config config;
 
-    public App(Config config) {
+    public MasterApp(Config config) {
         this.config = config;
     }
 
@@ -41,11 +41,18 @@ public class App {
         int port = (args.length == 0) ? 0 : Integer.parseInt(args[0]);
         Config config = ConfigFactory.parseString("akka.remote.netty.tcp.port=" + port)
                                      // .withFallback(ConfigFactory.parseString("akka.cluster.roles = [managerRole]"))
-                                     .withFallback(ConfigFactory.load());
+                                     .withFallback(ConfigFactory.load())
+                                     // common config:
+                                     //.withFallback(
 
-        App sysInstance = new App(config);
+                                     //                ConfigFactory.load("common/reference.conf")
+
+        //                             )
+        ;
+
+        MasterApp sysInstance = new MasterApp(config);
         sysInstance.start(port);
-        System.out.println("[MAIN] STOPPING THE SYSTEM in 10 sec...");
+        System.out.println("[MAIN] STOPPING THE SYSTEM in 20 sec...");
         Thread.sleep(20_000);
         System.out.println("[MAIN] STOPPING THE SYSTEM...");
         sysInstance.stop();
@@ -76,6 +83,7 @@ public class App {
         // can be used)
         final ActorRef proxy = createMasterAsSingleton();
 
+        // generate Input messages to Master
         system.scheduler()
               .scheduleOnce(FiniteDuration.apply(1, "s"), () -> {
                   sendMsg(0, proxy, port);
@@ -85,13 +93,18 @@ public class App {
 
     private ActorRef createMasterAsSingleton() {
         Props managerProps = ClusterSingletonManager.props(Props.create(Master.class), PoisonPill.getInstance(),
-                        ClusterSingletonManagerSettings.create(system));
+                        ClusterSingletonManagerSettings.create(system)
+                                                       // role:
+                                                       .withRole("master")
+
+        );
         ActorRef manager = system.actorOf(managerProps, "master");
         logger.info("[MAIN] Created singleton instance : " + manager.path() + ", " + manager.hashCode());
 
         // then  using proxy to access the singleton Master actor
-        return system.actorOf(ClusterSingletonProxy.props("/user/master", ClusterSingletonProxySettings.create(system))
-                        // ..withRole("backend")
+        return system.actorOf(ClusterSingletonProxy.props("/user/master", ClusterSingletonProxySettings.create(system)
+                                                                                                       .withRole("master"))
+                        // ..withRole("worker")
                         , "proxy" + RandomUtils.nextInt(0, Integer.MAX_VALUE));
     }
 

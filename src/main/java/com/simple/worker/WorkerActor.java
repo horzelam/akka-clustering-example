@@ -1,13 +1,16 @@
-package com.simple;
+package com.simple.worker;
 
-import com.simple.msg.SimpleMessage;
+import com.simple.common.SimpleMessage;
 
 import akka.actor.PoisonPill;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
-public class ChildAggregatorActor extends UntypedActor {
+/**
+ * Worker actor which aggregates incoming messages
+ */
+public class WorkerActor extends UntypedActor {
     private final LoggingAdapter logger = Logging.getLogger(getContext().system(), this);
 
     private int counter = 0;

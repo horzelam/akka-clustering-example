@@ -1,46 +1,71 @@
-### How to start it simulating multiple Cluster Nodes , while 2551 is seed node (for initial join into the cluster):
-
- * 1 node: mvn exec:java -Dexec.mainClass="com.simple.App" -Dconfig.resource=application.conf -Dexec.args="2551"
- * 2 node: mvn exec:java -Dexec.mainClass="com.simple.App" -Dconfig.resource=application.conf -Dexec.args="2552"
- * ...
-
 ### Description
- * Master actor initialized only if we have at least 2 nodes.
+ This is example how to start akka cluster with several nodes setup.
+   
+ Master node has just single Master actor - its defined as cluster singleton, so even if we start more master nodes 
+ there should always be single Master.
+   
+ Backend nodes are prepared to host a ChildAggregator actors.
+ These actors are actually routees (children) of router created in Master actor.
  
-### App versions:
- * cluster-singleton Master + application.conf  - creating Child actors (but only on the same node as Cluster singleton), 2 nodes generating input messages </LI>
- * cluster-singleton MasterVer2 + application.ver2.conf - router creating Child actors (but only on the same node as Cluster singleton), 2 nodes generating input messages </LI>
+ Master actor initialized only on cluster Up event - only cluster achieved minimum setup.
+ 
+ If we start additional worker node - it should also produce the messages
+ 
+
+### How to start it simulating multiple Cluster Nodes , while 2551 is seed node (for initial join into the cluster):
+To form a minimal cluster of 2 worker nodes + 1 master node run following scripts:
+ * runWorker.sh
+ * runWorker.sh
+ * runMaster_1.sh
+ 
+Optionally you can run: 
+ * runMaster_2.sh
+Which just adds another Master node producing messages, but Master actor should be single in the whole cluster.
+
+### How the messages are distributed in a cluster of 2 Master + 2 Worker nodes:
+ All messages from both master nodes (2551, 2552) are first propagated 
+ to singleton Master actor and then to router.
+  
+ * message from master node 2551, value=0 --> worker c4 on worker node 1
+ * message from master node 2552, value=0 --> worker c4 on worker node 1
+ * message from master node 2551, value=2 --> worker c2 on worker node 1
+ * message from master node 2552, value=2 --> worker c2 on worker node 1
+ 
+ * message from master node 2552, value=1 --> worker c1 on worker node 2
+ * message from master node 2551, value=2 --> worker c3 on worker node 2
+ * message from master node 2551, value=1 --> worker c1 on worker node 2
+ * message from master node 2552, value=2 --> worker c3 on worker node 2
+ 
+  
+   
+### TODO:
+ * example of nice finish aggregation / stop the workers.
+ * example of Master node failure - Master actor should be started on 2nd awailable node.
  
 ### NOTE
-In akka-remoting remote you need to create remote actors - it's not done by the router automatically,
-even if router is configured to use remote group of actors - see http://doc.akka.io/docs/akka/2.4.8/scala/remoting.html
+See: http://doc.akka.io/docs/akka/2.4.8/scala/remoting.html
+In akka-remoting (without using clustering, ClusterRouterPool) you need to create remote actors on remote nodes to be able to use it in router group.
+It's not done by the router automatically.
+Even if router is configured to use remote group of actors - these actors must be created on remote node. 
 
-### TODO
-* children are created only on the same node where cluster singleton parent (Master) is created - configure it to create child actors distributed in cluster
+
+Without ClusterRouterPool and defined roles to be used when creating routees - children are created only on the same node 
+where Master is created.
 
 ### TO CHECK
-* config to use cluster aware routers/remote deployed routees
 
 * Possible approach with akka-clustering - create roles: common/backend/fronted
       * backend will have port 0
-      * frontend will create cluster-router which creates workers with role backend
-        
+      * frontend will create cluster-router which creates workers with role backend        
         see: 
         http://stackoverflow.com/questions/18798531/how-to-create-remote-actors-dynamically-and-control-them-by-using-akka
-
 * example where single producer is started and single consumer per consumer-node are started, 
   then router is sending data with load balancing to consumers
-
       * http://blog.kamkor.me/Akka-Cluster-Load-Balancing/
-      
+* config to use cluster aware routers/remote deployed routees    
 * https://blog.codecentric.de/en/2016/01/getting-started-akka-cluster/
-
 * local sending msg to remote actor - http://alvinalexander.com/scala/simple-akka-actors-remote-example
-
-
-
- 
- * see - cluster + cluster aware routers :
+* see - cluster + cluster aware routers :
     * http://doc.akka.io/docs/akka/2.4.0/java/cluster-usage.html
     * http://doc.akka.io/docs/akka/2.1.2/cluster/cluster-usage-java.html#preparing-your-project-for-clustering
         * http://www.typesafe.com/activator/template/akka-distributed-workers-java

@@ -1,9 +1,9 @@
-package com.simple.msg;
-
-import java.io.Serializable;
+package com.simple.common;
 
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
+
+import java.io.Serializable;
 
 public class SimpleMessage implements Serializable {
 

@@ -9,6 +9,9 @@ import akka.event.LoggingAdapter;
 import com.simple.msg.SimpleMessage;
 import scala.Option;
 
+/**
+ * This Master is cluster-singleton.
+ */
 public class Master extends UntypedActor {
 
     private final LoggingAdapter logger = Logging.getLogger(getContext().system(), this);
@@ -16,8 +19,7 @@ public class Master extends UntypedActor {
     @Override
     public void onReceive(Object msg) throws Exception {
 
-        // TODO
-        // - create child Aggregator (but DISTRIBUTED on cluster)  - via router configured to do so
+        // This Master creates children directly - all are created on the same node
         if (msg instanceof SimpleMessage) {
             logger.info("Received msg: " + msg + " in  " + this.self().path().address() + " - " + this.hashCode() + " in "
                             + Cluster.get(this.context().system()).selfAddress());
@@ -28,18 +30,16 @@ public class Master extends UntypedActor {
 
 
 
-            // TODO: replace child with router for children
+            // TODO in different version: replace child with router for children
             // SCALA: context.actorOf(FromConfig.props(), name = "consumerRouter")
             // aggRouter = this.getContext().actorOf(Props.create(), "aggRouter");
-
-
 
             Option<ActorRef> possibleChild = this.context().child(childName);
             ActorRef child;
             if (possibleChild.isDefined()) {
                 child = possibleChild.get();
             } else {
-                child = this.context().actorOf(Props.create(MyAggActor.class), childName);
+                child = this.context().actorOf(Props.create(ChildAggregatorActor.class), childName);
                 System.out.println("Created a child actor: " + child.path());
             }
 

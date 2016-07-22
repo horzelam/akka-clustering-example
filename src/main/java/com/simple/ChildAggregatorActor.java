@@ -7,7 +7,7 @@ import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
-public class MyAggActor extends UntypedActor {
+public class ChildAggregatorActor extends UntypedActor {
     private final LoggingAdapter logger = Logging.getLogger(getContext().system(), this);
 
     private int counter = 0;

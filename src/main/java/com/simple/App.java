@@ -18,23 +18,10 @@ import com.typesafe.config.ConfigFactory;
 import org.apache.commons.lang3.RandomUtils;
 import scala.concurrent.duration.FiniteDuration;
 
-// HOW to start it - simulating multiple Cluster Nodes , while 2551 is seed node (for initial join into the cluster):
-// mvn exec:java -Dexec.mainClass="com.simple.MySystem" -Dconfig.resource=application.conf -Dexec.args="2551"
-// mvn exec:java -Dexec.mainClass="com.simple.MySystem" -Dconfig.resource=application.conf -Dexec.args="2552"
-// ...
-// TODO:
-// config to use cluster aware routers/remote deployed routees
-// currently it creates Cluster Singleton, but children are created only on the same node where singleton is created
-// see:
-// - cluster + cluster aware routers :
-//      http://doc.akka.io/docs/akka/2.4.0/java/cluster-usage.html
-//      http://doc.akka.io/docs/akka/2.1.2/cluster/cluster-usage-java.html#preparing-your-project-for-clustering
-// - http://www.typesafe.com/activator/template/akka-distributed-workers-java
-// - https://github.com/typesafehub/activator-akka-distributed-workers-java/blob/d0ff7f4ef4629724368a2e68aa9ef7b4e3447270/src/main/java/worker/Frontend.java
-// - https://github.com/typesafehub/activator-akka-distributed-workers-java#master
-// - http://www.typesafe.com/activator/template/akka-distributed-workers?_ga=1.99394842.506721680.1434724237#code/src/main/scala/worker/Main.scala
-// - http://www.typesafe.com/activator/template/akka-distributed-workers-java#code/src/main/java/worker/Main.java
-public class MySystem {
+/**
+ * Main App class.
+ */
+public class App {
 
     private static ActorSystem system;
 
@@ -42,7 +29,7 @@ public class MySystem {
 
     private Config config;
 
-    public MySystem(Config config) {
+    public App(Config config) {
         this.config = config;
     }
 
@@ -56,7 +43,7 @@ public class MySystem {
                                      // .withFallback(ConfigFactory.parseString("akka.cluster.roles = [managerRole]"))
                                      .withFallback(ConfigFactory.load());
 
-        MySystem sysInstance = new MySystem(config);
+        App sysInstance = new App(config);
         sysInstance.start(port);
         System.out.println("[MAIN] STOPPING THE SYSTEM in 10 sec...");
         Thread.sleep(20_000);
@@ -67,14 +54,18 @@ public class MySystem {
     public void start(int port) {
         system = ActorSystem.create("example-system", config);
         this.logger = Logging.getLogger(system, this);
-        Address realJoinAddress = Cluster.get(system).selfAddress();
+        Address realJoinAddress = Cluster.get(system)
+                                         .selfAddress();
         logger.info("[MAIN] JOIN ADDRESS: " + realJoinAddress + "------");
         // Cluster.get(system).join(realJoinAddress);
 
         logger.info("[MAIN] Starting system with config:");
-        logger.info("[MAIN] " + system.settings().config().getAnyRef("akka.remote.netty.tcp.port"));
+        logger.info("[MAIN] " + system.settings()
+                                      .config()
+                                      .getAnyRef("akka.remote.netty.tcp.port"));
 
-        Cluster.get(system).registerOnMemberUp(() -> onClusterUp(port));
+        Cluster.get(system)
+               .registerOnMemberUp(() -> onClusterUp(port));
 
     }
 
@@ -83,28 +74,34 @@ public class MySystem {
 
         // create singleton Manager (not limited to any role - so all the nodes
         // can be used)
+        final ActorRef proxy = createMasterAsSingleton();
+
+        system.scheduler()
+              .scheduleOnce(FiniteDuration.apply(1, "s"), () -> {
+                  sendMsg(0, proxy, port);
+              }, system.dispatcher());
+
+    }
+
+    private ActorRef createMasterAsSingleton() {
         Props managerProps = ClusterSingletonManager.props(Props.create(Master.class), PoisonPill.getInstance(),
                         ClusterSingletonManagerSettings.create(system));
         ActorRef manager = system.actorOf(managerProps, "master");
         logger.info("[MAIN] Created singleton instance : " + manager.path() + ", " + manager.hashCode());
 
         // then  using proxy to access the singleton Master actor
-        ActorRef proxy = system.actorOf(ClusterSingletonProxy.props("/user/master", ClusterSingletonProxySettings.create(system))
+        return system.actorOf(ClusterSingletonProxy.props("/user/master", ClusterSingletonProxySettings.create(system))
                         // ..withRole("backend")
                         , "proxy" + RandomUtils.nextInt(0, Integer.MAX_VALUE));
-
-        system.scheduler().scheduleOnce(FiniteDuration.apply(1, "s"), () -> {
-            sendMsg(0, proxy, port);
-        }, system.dispatcher());
-
     }
 
     private void sendMsg(int msgNr, ActorRef proxy, int port) {
         logger.info("[MAIN] Sending msg nr " + msgNr);
         proxy.tell(new SimpleMessage("someMsg_from_node_" + port, RandomUtils.nextInt(0, 3)), ActorRef.noSender());
-        system.scheduler().scheduleOnce(FiniteDuration.apply(1, "s"), () -> {
-            sendMsg(msgNr + 1, proxy, port);
-        }, system.dispatcher());
+        system.scheduler()
+              .scheduleOnce(FiniteDuration.apply(1, "s"), () -> {
+                  sendMsg(msgNr + 1, proxy, port);
+              }, system.dispatcher());
     }
 
     private void stop() {

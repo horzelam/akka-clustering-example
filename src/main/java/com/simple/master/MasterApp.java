@@ -110,7 +110,7 @@ public class MasterApp {
 
     private void sendMsg(int msgNr, ActorRef proxy, int port) {
         logger.info("[MAIN] Sending msg nr " + msgNr);
-        proxy.tell(new SimpleMessage("someMsg_from_node_" + port, RandomUtils.nextInt(0, 3)), ActorRef.noSender());
+        proxy.tell(new SimpleMessage("message from master node " + port, RandomUtils.nextInt(0, 3)), ActorRef.noSender());
         system.scheduler()
               .scheduleOnce(FiniteDuration.apply(1, "s"), () -> {
                   sendMsg(msgNr + 1, proxy, port);

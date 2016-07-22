@@ -3,23 +3,33 @@
    
  Master node has just single Master actor - its defined as cluster singleton, so even if we start more master nodes 
  there should always be single Master.
+ If we start additional master node - it should also produce the messages.
    
  Backend nodes are prepared to host a ChildAggregator actors.
  These actors are actually routees (children) of router created in Master actor.
  
- Master actor initialized only on cluster Up event - only cluster achieved minimum setup.
+ Master actor initialized only on cluster Up event - only when cluster achieved minimum setup.
+ After the cluster Up event is handled and Master singleton is created then messages are start to sent (from all master nodes).
  
- If we start additional worker node - it should also produce the messages
+ 
+ The SimpleMessage has fields:
+ 
+ * text e.g. "someMsg_from_node_2551" - just to track from which origin it was sent
+ * value - with values 0..4 - on this field ConsistentHashMapper in Master actor router is based
  
 
 ### How to start it simulating multiple Cluster Nodes , while 2551 is seed node (for initial join into the cluster):
+
 To form a minimal cluster of 2 worker nodes + 1 master node run following scripts:
+
  * runWorker.sh
  * runWorker.sh
  * runMaster_1.sh
  
-Optionally you can run: 
+Optionally you can run:
+ 
  * runMaster_2.sh
+ 
 Which just adds another Master node producing messages, but Master actor should be single in the whole cluster.
 
 ### How the messages are distributed in a cluster of 2 Master + 2 Worker nodes:
@@ -39,6 +49,7 @@ Which just adds another Master node producing messages, but Master actor should 
   
    
 ### TODO:
+
  * example of nice finish aggregation / stop the workers.
  * example of Master node failure - Master actor should be started on 2nd awailable node.
  

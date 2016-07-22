@@ -1,30 +1,24 @@
 package com.simple.worker;
 
-import com.simple.common.SimpleMessage;
-
-import akka.actor.PoisonPill;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import com.simple.common.SimpleMessage;
 
 /**
  * Worker actor which aggregates incoming messages
  */
 public class WorkerActor extends UntypedActor {
-    private final LoggingAdapter logger = Logging.getLogger(getContext().system(), this);
 
-    private int counter = 0;
+    private final LoggingAdapter logger = Logging.getLogger(getContext().system(), this);
 
     @Override
     public void onReceive(Object msg) throws Exception {
         if (msg instanceof SimpleMessage) {
-            if (++counter < 3) {
-                logger.info("Aggregating message:" + msg + "," + self().path());
-            } else {
-                logger.info("Dying for 3rd message," + self().path());
-                this.self().tell(PoisonPill.getInstance(), self());
-            }
+            logger.info("<-- Aggregating message:" + msg + "," + self().path());
         } else {
+            //logger.info("Dying for unknown message," + self().path());
+            //this.self().tell(PoisonPill.getInstance(), self());
             logger.info("Unrecognized msg received : " + msg);
         }
     }
